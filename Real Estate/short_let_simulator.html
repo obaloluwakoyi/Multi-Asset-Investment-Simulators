@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Short-Let ROI Terminal v2.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { --gold: #D4AF37; --dark: #0a0a0a; --card: #141414; --green: #00ff88; --blue: #3d85c6; --red: #ff4d4d; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: #e0e0e0; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: auto; }
+        .header { border-bottom: 2px solid var(--gold); padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .grid { display: grid; grid-template-columns: 450px 1fr; gap: 30px; }
+        .card { background: var(--card); border-radius: 12px; padding: 25px; border: 1px solid #333; margin-bottom: 20px; }
+        
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border-bottom: 4px solid var(--gold); }
+        .stat-val { display: block; font-size: 1.3rem; font-weight: bold; color: var(--gold); margin-top: 5px; }
+        
+        label { display: block; font-size: 0.7rem; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        input, select { width: 100%; padding: 10px; background: #000; border: 1px solid #444; color: #fff; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; font-size: 0.9rem; }
+        .btn { background: var(--gold); color: #000; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        .btn:hover { background: #fff; transform: translateY(-2px); }
+        
+        .row { display: flex; gap: 12px; }
+        .row div { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+        th { text-align: left; padding: 10px; color: #666; border-bottom: 1px solid #333; }
+        td { padding: 12px; border-bottom: 1px solid #222; }
+        .positive { color: var(--green); }
+        
+        #pdf-header { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            #pdf-header { display: block !important; border: 2px solid var(--gold); padding: 20px; margin-bottom: 30px; border-radius: 10px; }
+            body { background: #000; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="report-content" class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0">SHORT-LET ACQUISITION <span style="color:var(--gold)">v2.0</span></h1>
+            <small>Hospitality Yield Simulation | March 19, 2026</small>
+        </div>
+        <div style="text-align: right">
+            <span style="color:var(--blue)">PRO-FORMA ANALYSIS</span><br>
+            <span id="live-date" style="font-size: 0.8rem; color:#888;"></span>
+        </div>
+    </div>
+
+    <div id="pdf-header">
+        <h2 style="color:var(--gold); margin:0;">EXECUTIVE INVESTMENT MEMO</h2>
+        <p>This document outlines the projected cashflow and equity growth for a high-yield short-let property asset.</p>
+    </div>
+
+    <div class="grid">
+        <div class="no-print">
+            <div class="card">
+                <h3>📋 Acquisition Data</h3>
+                <label>Purchase Price (₦)</label>
+                <input type="number" id="price" value="85000000">
+                
+                <div class="row">
+                    <div><label>Furnishing Cost (₦)</label><input type="number" id="furnishing" value="12000000"></div>
+                    <div><label>Down Payment (%)</label><input type="number" id="down" value="40"></div>
+                </div>
+
+                <h3>🏨 Hospitality Logic</h3>
+                <div class="row">
+                    <div><label>Nightly Rate (₦)</label><input type="number" id="nightly" value="85000"></div>
+                    <div><label>Occupancy (%)</label><input type="number" id="occ" value="65"></div>
+                </div>
+
+                <div class="row">
+                    <div><label>Cleaning/Fee (₦)</label><input type="number" id="cleaning" value="5000"></div>
+                    <div><label>Utility/Maint (₦)</label><input type="number" id="maint" value="350000"></div>
+                </div>
+
+                <label>Annual Appreciation (%)</label>
+                <input type="number" id="appr" value="12">
+
+                <button class="btn" onclick="runAnalysis()">⚡ GENERATE SHORT-LET ROI</button>
+                <button class="btn" style="margin-top:10px; background:#222; color:var(--gold); border:1px solid var(--gold)" onclick="exportPDF()">📄 EXPORT KPI REPORT</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="stat-grid">
+                <div class="stat-box"><small>EST. MONTHLY REV</small><span id="kpi-rev" class="stat-val">₦0</span></div>
+                <div class="stat-box"><small>NET OPERATING INC.</small><span id="kpi-noi" class="stat-val">₦0</span></div>
+                <div class="stat-box"><small>CASH-ON-CASH</small><span id="kpi-coc" class="stat-val">0%</span></div>
+                <div class="stat-box"><small>BREAK-EVEN NIGHTS</small><span id="kpi-be" class="stat-val">0 / mo</span></div>
+            </div>
+
+            <div class="card">
+                <h3>📈 Cumulative Wealth & Rental Growth</h3>
+                <canvas id="yieldChart" height="110"></canvas>
+            </div>
+
+            <div class="card">
+                <h3>📊 Multi-Year Revenue Projection</h3>
+                <table id="proforma-table">
+                    <thead>
+                        <tr>
+                            <th>YEAR</th>
+                            <th>GROSS REV</th>
+                            <th>TOTAL OPEX</th>
+                            <th>NET CASHFLOW</th>
+                            <th>PROPERTY VALUE</th>
+                            <th>ROI %</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let chart = null;
+document.getElementById('live-date').innerText = new Date().toLocaleDateString();
+
+function runAnalysis() {
+    const price = parseFloat(document.getElementById('price').value);
+    const furnish = parseFloat(document.getElementById('furnishing').value);
+    const downPct = parseFloat(document.getElementById('down').value) / 100;
+    const nightly = parseFloat(document.getElementById('nightly').value);
+    const occ = parseFloat(document.getElementById('occ').value) / 100;
+    const cleaning = parseFloat(document.getElementById('cleaning').value);
+    const maint = parseFloat(document.getElementById('maint').value);
+    const appr = parseFloat(document.getElementById('appr').value) / 100;
+
+    const totalInitial = (price * downPct) + furnish;
+    const monthlyGross = (nightly * 30 * occ);
+    const monthlyCleaning = (30 * occ / 3) * cleaning; // Assumes 3-night average stay
+    const monthlyOpex = maint + monthlyCleaning;
+    const monthlyNOI = monthlyGross - monthlyOpex;
+    
+    const annualNOI = monthlyNOI * 12;
+    const coc = (annualNOI / totalInitial) * 100;
+    const breakEvenNights = Math.ceil(monthlyOpex / nightly);
+
+    // KPI Updates
+    document.getElementById('kpi-rev').innerText = "₦" + Math.round(monthlyGross).toLocaleString();
+    document.getElementById('kpi-noi').innerText = "₦" + Math.round(monthlyNOI).toLocaleString();
+    document.getElementById('kpi-coc').innerText = coc.toFixed(1) + "%";
+    document.getElementById('kpi-be').innerText = breakEvenNights + " Nights";
+
+    const tableBody = document.querySelector('#proforma-table tbody');
+    tableBody.innerHTML = "";
+    let labels = [], wealthData = [], revenueData = [];
+
+    for (let i = 1; i <= 10; i++) {
+        const yearVal = price * Math.pow(1 + appr, i);
+        const yearRev = annualNOI * Math.pow(1.08, i); // 8% nightly rate increase
+        const currentTotalWealth = yearVal + (yearRev * i);
+        
+        labels.push("Year " + i);
+        wealthData.push(yearVal);
+        revenueData.push(yearRev);
+
+        tableBody.innerHTML += `
+            <tr>
+                <td><b>Year ${i}</b></td>
+                <td>₦${Math.round(monthlyGross * 12 * Math.pow(1.08, i)).toLocaleString()}</td>
+                <td>₦${Math.round(monthlyOpex * 12 * Math.pow(1.05, i)).toLocaleString()}</td>
+                <td class="positive">₦${Math.round(yearRev).toLocaleString()}</td>
+                <td>₦${Math.round(yearVal).toLocaleString()}</td>
+                <td>${((yearRev / totalInitial) * 100).toFixed(1)}%</td>
+            </tr>`;
+    }
+    updateChart(labels, wealthData, revenueData);
+}
+
+function updateChart(labels, wealth, rev) {
+    const ctx = document.getElementById('yieldChart').getContext('2d');
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Property Appreciation', data: wealth, backgroundColor: 'rgba(212, 175, 55, 0.6)', type: 'line', borderColor: '#D4AF37' },
+                { label: 'Annual Net Revenue', data: rev, backgroundColor: '#3d85c6' }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { ticks: { callback: value => '₦' + (value/1000000).toFixed(1) + 'M' }, grid: { color: '#222' } } }
+        }
+    });
+}
+
+function exportPDF() {
+    const element = document.getElementById('report-content');
+    html2pdf().set({
+        margin: 0.4,
+        filename: 'ShortLet_ROI_Report_2026.pdf',
+        html2canvas: { scale: 2, backgroundColor: '#0a0a0a' },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+    }).from(element).save();
+}
+
+window.onload = runAnalysis;
+</script>
+</body>
+</html>

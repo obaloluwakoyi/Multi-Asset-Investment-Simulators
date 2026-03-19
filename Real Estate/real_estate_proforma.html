@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Realty Acquisition Terminal v1.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { --gold: #C5A059; --dark: #0f0f0f; --card: #1a1a1a; --green: #00ff88; --blue: #3d85c6; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: #e0e0e0; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: auto; }
+        .header { border-bottom: 2px solid var(--gold); padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .grid { display: grid; grid-template-columns: 450px 1fr; gap: 30px; }
+        .card { background: var(--card); border-radius: 12px; padding: 25px; border: 1px solid #333; margin-bottom: 20px; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .stat-box { background: #222; padding: 20px; border-radius: 8px; text-align: center; border-top: 4px solid var(--gold); }
+        .stat-val { display: block; font-size: 1.4rem; font-weight: bold; color: var(--gold); margin-top: 5px; }
+        
+        label { display: block; font-size: 0.75rem; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
+        .btn { background: var(--gold); color: #000; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; font-size: 1rem; }
+        .btn:hover { background: #fff; transform: translateY(-2px); }
+        
+        .row { display: flex; gap: 15px; }
+        .row div { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; padding: 12px; color: #666; border-bottom: 1px solid #333; font-size: 0.8rem; }
+        td { padding: 15px; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .positive { color: var(--green); }
+        .negative { color: var(--red); }
+
+        #pdf-summary { display: none; }
+        @media print {
+            .no-print { display: none !important; }
+            #pdf-summary { display: block !important; padding: 40px; background: #fff; color: #000; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="report-content" class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0; letter-spacing: 2px;">REALTY ANALYTICS <span style="color:var(--gold)">PRO</span></h1>
+            <small>Investment Grade Property Evaluator | March 2026</small>
+        </div>
+        <div style="text-align: right">
+            <span style="color:var(--blue)">PRO-FORMA ANALYSIS</span><br>
+            <span id="current-date" style="font-size: 0.8rem; color:#888;"></span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="no-print">
+            <div class="card">
+                <h3>🏗️ Property Assumptions</h3>
+                <label>Purchase Price (₦)</label>
+                <input type="number" id="price" value="150000000">
+                
+                <div class="row">
+                    <div><label>Down Payment (%)</label><input type="number" id="down" value="30"></div>
+                    <div><label>Loan Interest (%)</label><input type="number" id="interest" value="18"></div>
+                </div>
+
+                <div class="row">
+                    <div><label>Annual Rent (₦)</label><input type="number" id="rent" value="12000000"></div>
+                    <div><label>Vacancy Rate (%)</label><input type="number" id="vacancy" value="5"></div>
+                </div>
+
+                <label>Annual Operating Expenses (₦)</label>
+                <input type="number" id="opex" value="2500000">
+
+                <div class="row">
+                    <div><label>Appreciation Rate (%)</label><input type="number" id="appreciation" value="8"></div>
+                    <div><label>Holding Period (Yrs)</label><input type="number" id="years" value="10"></div>
+                </div>
+
+                <button class="btn" onclick="runAnalysis()">⚡ RUN FULL SIMULATION</button>
+                <button class="btn" style="margin-top:10px; background:#222; color:var(--gold); border:1px solid var(--gold)" onclick="exportPDF()">📄 EXPORT INVESTMENT MEMO</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="stat-grid">
+                <div class="stat-box"><small>CAP RATE</small><span id="kpi-cap" class="stat-val">0%</span></div>
+                <div class="stat-box"><small>MONTHLY CASHFLOW</small><span id="kpi-cash" class="stat-val">₦0</span></div>
+                <div class="stat-box"><small>CASH-ON-CASH</small><span id="kpi-coc" class="stat-val">0%</span></div>
+                <div class="stat-box"><small>EST. EXIT VALUE</small><span id="kpi-exit" class="stat-val">₦0</span></div>
+            </div>
+
+            <div class="card">
+                <h3>📈 10-Year Equity vs. Debt Projection</h3>
+                <canvas id="yieldChart" height="120"></canvas>
+            </div>
+
+            <div class="card">
+                <h3>📊 Year-over-Year Pro-Forma</h3>
+                <table id="proforma-table">
+                    <thead>
+                        <tr>
+                            <th>YEAR</th>
+                            <th>GROSS INCOME</th>
+                            <th>EXPENSES</th>
+                            <th>MORTGAGE</th>
+                            <th>NET CASHFLOW</th>
+                            <th>EQUITY</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let chart = null;
+document.getElementById('current-date').innerText = new Date().toLocaleDateString();
+
+function runAnalysis() {
+    const price = parseFloat(document.getElementById('price').value);
+    const downPct = parseFloat(document.getElementById('down').value) / 100;
+    const interest = parseFloat(document.getElementById('interest').value) / 100;
+    const rent = parseFloat(document.getElementById('rent').value);
+    const vacancy = parseFloat(document.getElementById('vacancy').value) / 100;
+    const opex = parseFloat(document.getElementById('opex').value);
+    const appreciation = parseFloat(document.getElementById('appreciation').value) / 100;
+    const years = parseInt(document.getElementById('years').value);
+
+    const loanAmount = price * (1 - downPct);
+    const monthlyInterest = interest / 12;
+    const totalMonths = 25 * 12; // 25-year mortgage assumption
+    const monthlyPayment = (loanAmount * monthlyInterest) / (1 - Math.pow(1 + monthlyInterest, -totalMonths));
+    const annualMortgage = monthlyPayment * 12;
+
+    const noi = rent * (1 - vacancy) - opex;
+    const capRate = (noi / price) * 100;
+    const cashFlow = noi - annualMortgage;
+    const coc = (cashFlow / (price * downPct)) * 100;
+
+    // Updates
+    document.getElementById('kpi-cap').innerText = capRate.toFixed(2) + "%";
+    document.getElementById('kpi-cash').innerText = "₦" + Math.round(cashFlow / 12).toLocaleString();
+    document.getElementById('kpi-coc').innerText = coc.toFixed(2) + "%";
+    
+    const tableBody = document.querySelector('#proforma-table tbody');
+    tableBody.innerHTML = "";
+
+    let labels = [];
+    let equityData = [];
+    let debtData = [];
+
+    for (let i = 0; i <= years; i++) {
+        const currentVal = price * Math.pow(1 + appreciation, i);
+        const currentRent = rent * Math.pow(1.05, i); // 5% rent escalation
+        const currentNOI = currentRent * (1 - vacancy) - (opex * Math.pow(1.03, i));
+        const currentCF = currentNOI - annualMortgage;
+        
+        labels.push("Year " + i);
+        equityData.push(currentVal - loanAmount); // Simple interest-only debt assumption for projection
+        debtData.push(loanAmount);
+
+        if(i > 0) {
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${i}</td>
+                    <td>₦${Math.round(currentRent).toLocaleString()}</td>
+                    <td>₦${Math.round(opex * Math.pow(1.03, i)).toLocaleString()}</td>
+                    <td>₦${Math.round(annualMortgage).toLocaleString()}</td>
+                    <td class="${currentCF > 0 ? 'positive' : 'negative'}">₦${Math.round(currentCF).toLocaleString()}</td>
+                    <td>₦${Math.round(currentVal - loanAmount).toLocaleString()}</td>
+                </tr>`;
+        }
+    }
+
+    document.getElementById('kpi-exit').innerText = "₦" + Math.round(price * Math.pow(1 + appreciation, years)).toLocaleString();
+    updateChart(labels, equityData, debtData);
+}
+
+function updateChart(labels, equity, debt) {
+    const ctx = document.getElementById('yieldChart').getContext('2d');
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Property Equity', data: equity, borderColor: '#C5A059', backgroundColor: 'rgba(197, 160, 89, 0.2)', fill: true },
+                { label: 'Remaining Debt', data: debt, borderColor: '#333', borderDash: [5, 5] }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { grid: { color: '#222' }, ticks: { callback: value => '₦' + value.toLocaleString() } }
+            }
+        }
+    });
+}
+
+function exportPDF() {
+    const element = document.getElementById('report-content');
+    html2pdf().set({
+        margin: 0.5,
+        filename: 'Real_Estate_Investment_Memo.pdf',
+        html2canvas: { scale: 2, backgroundColor: '#0f0f0f' },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
+    }).from(element).save();
+}
+
+window.onload = runAnalysis;
+</script>
+</body>
+</html>
