@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quantum Strategic Terminal v21.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { --gold: #D4AF37; --dark: #0a0a0a; --card: #141414; --green: #00ff88; --red: #ff4d4d; --blue: #3d85c6; }
+        body { font-family: 'Inter', sans-serif; background: var(--dark); color: #e0e0e0; margin: 0; padding: 20px; }
+        .container { max-width: 1300px; margin: auto; }
+        .header { border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; }
+        .grid { display: grid; grid-template-columns: 420px 1fr; gap: 25px; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid #222; margin-bottom: 20px; }
+        .btn { background: var(--gold); color: #000; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; transition: 0.3s; }
+        .btn:hover { background: #fff; }
+        .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #1a1a1a; padding: 15px; border-radius: 8px; text-align: center; border-bottom: 3px solid var(--gold); }
+        .stat-val { display: block; font-size: 1.1rem; font-weight: bold; color: var(--gold); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.82rem; }
+        th { text-align: left; color: #888; border-bottom: 1px solid #333; padding: 8px; }
+        td { padding: 10px; border-bottom: 1px solid #222; }
+        input, select { width: 100%; padding: 8px; background: #000; border: 1px solid #333; color: #fff; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box; }
+        .tag { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-weight: bold; }
+        .tag-blue { background: var(--blue); color: white; }
+    </style>
+</head>
+<body>
+
+<div id="report-content" class="container">
+    <div class="header">
+        <div>
+            <h1 style="margin:0">NGX SUPER-AGENT TERMINAL <span style="color:var(--gold)">v21.0</span></h1>
+            <small>Deep Portfolio Analysis |  2026</small>
+        </div>
+        <div style="text-align: right">
+            <span style="color:var(--green)">● 30 ASSETS LOADED</span><br>
+            <span style="color:#888; font-size: 0.7rem;">Verified 2026 Closing Prices</span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="no-print">
+            <div class="card">
+                <h3>⚙️ Portfolio Build</h3>
+                <button class="btn" onclick="autoFill()">✨ QUICK-PICK (TOP 5)</button>
+                <label>Total Capital (₦)</label>
+                <input type="number" id="cap" value="10000000">
+                <label>Years to Hold</label>
+                <input type="number" id="yrs" value="5">
+                <label>Number of Stocks</label>
+                <select id="count" onchange="initInputs()">
+                    <option value="3">3 Assets</option>
+                    <option value="5">5 Assets</option>
+                    <option value="10">10 Assets (Diversified)</option>
+                </select>
+                <div id="input-area" style="max-height: 400px; overflow-y: auto; padding-right: 5px;"></div>
+                <button class="btn" onclick="calculate()">⚡ UPDATE CALCULATIONS</button>
+                <button class="btn" style="background:#222; color:var(--gold); border:1px solid var(--gold)" onclick="exportPDF()">📄 EXPORT PDF</button>
+            </div>
+        </div>
+
+        <div>
+            <div class="stat-grid">
+                <div class="stat-box"><small>TOTAL UNITS</small><span id="kpi-vol" class="stat-val">0</span></div>
+                <div class="stat-box"><small>ANNUAL DIVIDEND</small><span id="kpi-cash" class="stat-val" style="color:var(--green)">₦0</span></div>
+                <div class="stat-box"><small>2031 PROJECTION</small><span id="kpi-wealth" class="stat-val">₦0</span></div>
+                <div class="stat-box"><small>PORTFOLIO ROI</small><span id="kpi-roi" class="stat-val">0%</span></div>
+            </div>
+
+            <div class="card">
+                <h3>📈 5-Year Growth Trajectory</h3>
+                <canvas id="mainChart" height="100"></canvas>
+            </div>
+
+            <div class="card">
+                <h3>📋 VOLUME BREAKDOWN & UNIT PRICING</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STOCK</th>
+                            <th>PRICE (₦)</th>
+                            <th>UNITS TO BUY</th>
+                            <th>ROI</th>
+                            <th>ANNUAL CASH</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// UPDATED DATA AS OF MARCH 18, 2026
+const ASSETS = [
+    { t: 'NVDA', n: 'NVIDIA (US)', p: 247063, g: 0.35, d: 0.002, c: 'Tech' },
+    { t: 'ARADEL', n: 'Aradel Holdings', p: 1340, g: 0.30, d: 0.022, c: 'Energy' },
+    { t: 'GEREGU', n: 'Geregu Power', p: 1141.50, g: 0.28, d: 0.015, c: 'Utility' },
+    { t: 'AIRTELAFRI', n: 'Airtel Africa', p: 2270, g: 0.15, d: 0.035, c: 'Telecom' },
+    { t: 'DANGCEM', n: 'Dangote Cement', p: 810, g: 0.22, d: 0.056, c: 'Indust.' },
+    { t: 'NGXGROUP', n: 'NGX Group', p: 186.85, g: 0.25, d: 0.045, c: 'Finance' },
+    { t: 'GTCO', n: 'GTCO Bank', p: 123.70, g: 0.19, d: 0.068, c: 'Bank' },
+    { t: 'ZENITH', n: 'Zenith Bank', p: 111.15, g: 0.17, d: 0.057, c: 'Bank' },
+    { t: 'CAP', n: 'CAP PLC', p: 99.00, g: 0.20, d: 0.035, c: 'Indust.' },
+    { t: 'UBA', n: 'UBA Group', p: 50.90, g: 0.20, d: 0.055, c: 'Bank' },
+    { t: 'ACCESSCORP', n: 'Access Corp', p: 25.30, g: 0.21, d: 0.050, c: 'Bank' },
+    { t: 'TRANSCO', n: 'Transcorp Group', p: 49.50, g: 0.26, d: 0.042, c: 'Conglom.' },
+    { t: 'FBNH', n: 'FBN Holdings', p: 38.50, g: 0.18, d: 0.048, c: 'Bank' },
+    { t: 'STANBIC', n: 'Stanbic IBTC', p: 65.00, g: 0.16, d: 0.060, c: 'Bank' },
+    { t: 'BUACEMENT', n: 'BUA Cement', p: 297.00, g: 0.15, d: 0.027, c: 'Indust.' },
+    { t: 'BUAFOODS', n: 'BUA Foods', p: 798.00, g: 0.24, d: 0.018, c: 'Consumer' },
+    { t: 'SEPLAT', n: 'Seplat Energy', p: 9095.00, g: 0.22, d: 0.041, c: 'Energy' },
+    { t: 'MTNN', n: 'MTN Nigeria', p: 760.00, g: 0.18, d: 0.039, c: 'Telecom' },
+    { t: 'OANDO', n: 'Oando PLC', p: 50.25, g: 0.32, d: 0.010, c: 'Energy' },
+    { t: 'FIDELITY', n: 'Fidelity Bank', p: 19.40, g: 0.17, d: 0.052, c: 'Bank' },
+    { t: 'DANGSUGAR', n: 'Dangote Sugar', p: 42.00, g: 0.14, d: 0.030, c: 'Consumer' },
+    { t: 'NASCON', n: 'NASCON Allied', p: 38.50, g: 0.16, d: 0.035, c: 'Consumer' },
+    { t: 'GUINNESS', n: 'Guinness Nig', p: 72.00, g: 0.10, d: 0.025, c: 'Consumer' },
+    { t: 'NESTLE', n: 'Nestle Nigeria', p: 950.00, g: 0.12, d: 0.045, c: 'Consumer' },
+    { t: 'PRESCO', n: 'Presco PLC', p: 480.00, g: 0.25, d: 0.038, c: 'Agric' },
+    { t: 'OKOMUOIL', n: 'Okomu Oil', p: 680.00, g: 0.23, d: 0.040, c: 'Agric' },
+    { t: 'WAPCO', n: 'Lafarge Africa', p: 210.00, g: 0.18, d: 0.050, c: 'Indust.' },
+    { t: 'FLOURMILL', n: 'Flour Mills', p: 45.00, g: 0.12, d: 0.040, c: 'Consumer' },
+    { t: 'ETERNA', n: 'Eterna PLC', p: 28.50, g: 0.25, d: 0.015, c: 'Energy' },
+    { t: 'TOTAL', n: 'Total Energies', p: 680.00, g: 0.15, d: 0.055, c: 'Energy' }
+];
+
+let chart = null;
+
+function initInputs() {
+    const c = document.getElementById('count').value;
+    const area = document.getElementById('input-area');
+    area.innerHTML = "";
+    for(let i=1; i<=c; i++) {
+        area.innerHTML += `
+        <div style="display:flex; gap:5px; margin-bottom:5px">
+            <select id="s-${i}" style="flex:2">${ASSETS.sort((a,b)=>a.n.localeCompare(b.n)).map(a=>`<option value="${a.t}">${a.n}</option>`).join('')}</select>
+            <input type="number" id="w-${i}" value="${Math.floor(100/c)}" style="flex:1" placeholder="%">
+        </div>`;
+    }
+}
+
+function autoFill() {
+    document.getElementById('count').value = 5; initInputs();
+    const p = ['NVDA', 'ARADEL', 'NGXGROUP', 'GEREGU', 'CAP'];
+    const w = [30, 20, 20, 20, 10];
+    p.forEach((k, i) => { document.getElementById(`s-${i+1}`).value = k; document.getElementById(`w-${i+1}`).value = w[i]; });
+    calculate();
+}
+
+function calculate() {
+    const cap = parseFloat(document.getElementById('cap').value);
+    const yrs = parseInt(document.getElementById('yrs').value);
+    const cnt = document.getElementById('count').value;
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = "";
+
+    let tG = 0, tD = 0, tV = 0, tC = 0;
+
+    for(let i=1; i<=cnt; i++) {
+        const asset = ASSETS.find(a => a.t === document.getElementById(`s-${i}`).value);
+        const weight = parseFloat(document.getElementById(`w-${i}`).value)/100;
+        const alloc = cap * weight;
+        const units = Math.floor(alloc / asset.p);
+        tV += units;
+        tG += weight * asset.g;
+        tD += weight * asset.d;
+        tC += (alloc * asset.d);
+        
+        tbody.innerHTML += `<tr>
+            <td><b>${asset.n}</b> <span class="tag tag-blue">${asset.c}</span></td>
+            <td>₦${asset.p.toLocaleString()}</td>
+            <td><b>${units.toLocaleString()} Units</b></td>
+            <td>${(asset.g*100).toFixed(0)}%</td>
+            <td>₦${Math.round(alloc * asset.d).toLocaleString()}</td>
+        </tr>`;
+    }
+
+    const final = cap * Math.pow(1 + (tG * 0.9), yrs);
+    document.getElementById('kpi-wealth').innerText = "₦" + Math.round(final).toLocaleString();
+    document.getElementById('kpi-cash').innerText = "₦" + Math.round(tC).toLocaleString();
+    document.getElementById('kpi-vol').innerText = tV.toLocaleString();
+    document.getElementById('kpi-roi').innerText = (tG*100).toFixed(1) + "%";
+    updateChart(yrs, tG, cap);
+}
+
+function updateChart(y, g, i) {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    const data = Array.from({length: y+1}, (_, idx) => i * Math.pow(1 + (g*0.9), idx));
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: Array.from({length: y+1}, (_, idx)=>2026+idx), datasets: [{ data: data, borderColor: '#D4AF37', fill: true, backgroundColor: 'rgba(212,175,55,0.05)' }]},
+        options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#222' } } } }
+    });
+}
+
+function exportPDF() {
+    const element = document.getElementById('report-content');
+    html2pdf().set({ margin: 0.3, filename: 'Super_Agent_30_Asset_Report.pdf', html2canvas: { scale: 2, backgroundColor: '#0a0a0a' }, jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' } }).from(element).save();
+}
+
+window.onload = initInputs;
+</script>
+</body>
+</html>
