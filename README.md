@@ -68,3 +68,6 @@ Plaintext
 ├── executive_kpi_dashboard.html          # Professional Reporting UI
 ├── real_estate_proforma.html             # Long-term Property Modeler
 └── short_let_simulator.html              # Hospitality Yield Terminal
+
+
+Quantum Consutant/Dashboard/Quantum_Alpha_Dashboard.html
