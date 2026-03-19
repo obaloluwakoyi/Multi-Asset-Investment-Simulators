@@ -36,5 +36,35 @@ A specialized reporting dashboard built on the portfolio engine.
 * Optimized specifically for clean, print-ready PDF generation.
 * Formats complex financial projections into confidential, stakeholder-ready executive summaries.
 
+ ### 5 Quantum-Alpha: Risk & Optimization Engine ( Quantum_Investment_Consultant.ipynb)
+ An advanced research framework that utilizes Quantum Computing to solve the "Asset Allocation" problem.
+ *Quantum Solver: Uses QAOA to identify the efficient frontier and optimal asset weights.
+ *Risk Engine: Executes 10,000+ Monte Carlo simulations to forecast Value-at-Risk (VaR) and price trajectories.
+ *Automated ETL: Dynamically fetches global equity and crypto data via yfinance.
+*Output: Generates a standalone Quantum_Alpha_Dashboard.html with asset correlation heatmaps and optimized weights.
+
 ## 🚀 Usage
-No build process or local server is required. Simply clone the repository and open any of the HTML files directly in a modern web browser.
+🚀 Usage & Deployment
+For the Quantum Engine (Python):
+Prerequisites: Python 3.10+ and an IBM Quantum API Key.
+
+Installation: ```bash
+pip install qiskit qiskit-ibm-runtime yfinance riskfolio-lib plotly pandas
+
+Run: Execute the .ipynb notebook to perform optimization and generate the latest performance dashboard.
+
+For the Interactive Dashboards (HTML):
+No Server Required: These tools are built with a Zero-Server Architecture.
+
+Execution: Simply open any .html file in a modern web browser (Chrome, Safari, Edge).
+
+Exporting: Use the integrated "Export to PDF" buttons within the UI to generate professional investment memos for offline review.
+
+📂 Project Structure
+Plaintext
+
+├── Quantum_Investment_Consultant.ipynb   # Quantum Optimization Logic
+├── ngx_portfolio_builder.html            # Equity Allocation Terminal
+├── executive_kpi_dashboard.html          # Professional Reporting UI
+├── real_estate_proforma.html             # Long-term Property Modeler
+└── short_let_simulator.html              # Hospitality Yield Terminal
